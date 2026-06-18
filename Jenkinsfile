@@ -42,7 +42,7 @@ pipeline {
                     dockerPush(env.IMAGE_NAME)
                 }
             }
-        }
+        } 
         stage("deploy") {
             steps {
                 script {
@@ -52,6 +52,26 @@ pipeline {
                         sh "scp -o StrictHostKeyChecking=no server-cmds.sh ec2-user@<EC2_PUBLIC_IP>:/home/ec2-user"
                         sh "scp -o StrictHostKeyChecking=no docker-compose.yaml ec2-user@<EC2_PUBLIC_IP>:/home/ec2-user"
                         sh "ssh -o StrictHostKeyChecking=no ec2-user@<EC2_PUBLIC_IP> ${shellCmd}"
+                    }
+                }
+            }               
+        }
+        stage ("commit version update") {
+            steps {
+                script {
+                    withCredentials([usernamePassword(credentialsId: 'git-credentials', passwordVariable: 'PASS', usernameVariable: 'USER')]) {
+                        sh 'git config --global user.email "jenkins@example.com"'
+                        sh 'git config --global user.name "jenkins"'
+
+                        sh 'git status'
+                        sh 'git branch'
+                        sh 'git config --list'
+
+                        sh "git remote set-url origin https://${USER}:${PASS}@github.com/m-bengueddache/AWS-Jenkins.git"
+                        sh 'git add .'
+                        sh 'git commit -m "ci: version bump"'
+                        sh 'git pull --rebase origin jenkins-jobs'
+                        sh 'git push origin HEAD:jenkins-jobs'
                     }
                 }
             }
